@@ -31,7 +31,7 @@ def get_bank_logo(bank_name):
     }
     return logos.get(bank_name, "/assets/logos/default_logo.png")
 
-# Определяем агентов с их ролями и целями
+# Defining agents:
 researcher = Agent(
     role='Senior Research Analyst',
     goal="""Uncover the latest news and trends about the bank selected by the user in the task section. Provide the analysis in separate paragraphs for readability.""",
@@ -124,12 +124,12 @@ def activate_agent(bank_chosen, use_critic):
     if bank_chosen is None:
         return no_update, ""
 
-    # Показываем индикатор загрузки
+    # Loading indicator
     loading_text = f"Analyzing {bank_chosen}... Please wait."
     logging.debug(f"Bank chosen: {bank_chosen}, Use critic: {use_critic}")
 
     try:
-        # Начало длительного процесса
+
         paragraphs = []  # Инициализируем пустой список для хранения результата
 
         for _ in range(3):
@@ -148,10 +148,11 @@ def activate_agent(bank_chosen, use_critic):
                 agent=writer
             )
 
-            # Создаем список агентов и задач в зависимости от выбора пользователя
+            # If user chooses not to use critic
             agents = [researcher, writer]
             tasks = [task1, task2]
 
+            # If users chooses to use critic
             if use_critic:
                 logging.debug("Including critic agent in the process.")
                 critique_task = Task(
@@ -178,21 +179,17 @@ def activate_agent(bank_chosen, use_critic):
             if use_critic and "no further improvements needed" in result.raw.lower():
                 break  # Если нет замечаний, выходим из цикла
 
-        # Получаем путь к логотипу банка
+        # Loading bank's logo
         bank_logo = get_bank_logo(bank_chosen)
-
-        # Создаем элемент изображения для логотипа
         logo_img = html.Img(src=bank_logo, style={'width': '200px', 'margin': '20px auto'})
 
-        # Разбиваем результат на абзацы
+        # Editing results
         paragraphs = result.raw.split("\n\n")
         formatted_output = [dcc.Markdown(paragraph) for paragraph in paragraphs if paragraph.strip() != ""]
 
-        # Возвращаем логотип и результат анализа
         return [logo_img] + formatted_output, ""
 
     except Exception as e:
-        # Если возникла ошибка, выведите сообщение об ошибке
         error_message = f"An error occurred: {str(e)}"
         logging.error(error_message)
         return error_message, ""
