@@ -194,5 +194,5 @@ def activate_agent(bank_chosen, use_critic):
         logging.error(error_message)
         return error_message, ""
 
-if __name__ == '__main__':
-    app.run_server(debug=True)
+if __name__ == "__main__":
+    app.run_server(host='0.0.0.0', port=8080)
