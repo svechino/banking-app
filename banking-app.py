@@ -124,68 +124,63 @@ def activate_agent(bank_chosen, use_critic):
     if bank_chosen is None:
         return no_update, ""
 
-    # Loading indicator
     loading_text = f"Analyzing {bank_chosen}... Please wait."
     logging.debug(f"Bank chosen: {bank_chosen}, Use critic: {use_critic}")
 
     try:
+        task1 = Task(
+            description=f"""Conduct a comprehensive analysis of the latest news about {bank_chosen}.
+            Identify key trends, investments, loans, acquisitions, or holdings. Research how macroeconomic 
+            factors, such as interest rates, might impact the bank's performance. Ensure the analysis is well-structured with separate paragraphs.""",
+            expected_output="Full analysis report in bullet points",
+            agent=researcher
+        )
+        task2 = Task(
+            description=f"""Using the insights provided, develop an engaging blog
+            post that highlights the latest concerns and projections of {bank_chosen}.
+            Support your arguments with key financial metrics and organize the content into clear paragraphs.""",
+            expected_output="Full blog post in the form of 4 paragraphs",
+            agent=writer
+        )
 
-        paragraphs = []  # Инициализируем пустой список для хранения результата
+        agents = [researcher, writer]
+        tasks = [task1, task2]
 
-        for _ in range(3):
-            task1 = Task(
-                description=f"""Conduct a comprehensive analysis of the latest news about {bank_chosen}.
-                Identify key trends, investments, loans, acquisitions, or holdings. Research how macroeconomic 
-                factors, such as interest rates, might impact the bank's performance. Ensure the analysis is well-structured with separate paragraphs.""",
-                expected_output="Full analysis report in bullet points",
-                agent=researcher
+        if use_critic:
+            critique_task = Task(
+                description=f"""Review the blog post about {bank_chosen} and provide feedback on areas that need improvement.
+                            Focus on clarity, coherence, and engagement. If revisions are needed, provide specific suggestions.""",
+                expected_output="Feedback on the blog post with suggestions for improvement.",
+                agent=critic_agent
             )
-            task2 = Task(
-                description=f"""Using the insights provided, develop an engaging blog
-                post that highlights the latest concerns and projections of {bank_chosen}.
-                Support your arguments with key financial metrics and organize the content into clear paragraphs.""",
-                expected_output="Full blog post in the form of 4 paragraphs",
+            agents.append(critic_agent)
+            tasks.append(critique_task)
+
+            # Добавляем задачу для внесения правок агентом-автором
+            revision_task = Task(
+                description=f"""Based on the feedback provided by the critic, revise the blog post to improve clarity, coherence, and engagement.
+                                Implement the suggested changes and ensure the post is well-organized and comprehensive.""",
+                expected_output="Revised blog post after incorporating critic's feedback.",
                 agent=writer
             )
+            tasks.append(revision_task)
 
-            # If user chooses not to use critic
-            agents = [researcher, writer]
-            tasks = [task1, task2]
+        crew = Crew(
+            agents=agents,
+            tasks=tasks,
+            verbose=True,
+            process=Process.sequential
+        )
 
-            # If users chooses to use critic
-            if use_critic:
-                logging.debug("Including critic agent in the process.")
-                critique_task = Task(
-                    description=f"""Review the blog post about {bank_chosen} and provide feedback on areas that need improvement.
-                                Focus on clarity, coherence, and engagement. If revisions are needed, provide specific suggestions.""",
-                    expected_output="Feedback on the blog post with suggestions for improvement.",
-                    agent=critic_agent
-                )
-                agents.append(critic_agent)
-                tasks.append(critique_task)
-            else:
-                logging.debug("Critic agent not included in the process.")
+        result = crew.kickoff()
+        logging.debug("Result received from crew kickoff.")
 
-            crew = Crew(
-                agents=agents,
-                tasks=tasks,
-                verbose=True,
-                process=Process.sequential
-            )
-
-            result = crew.kickoff()
-            logging.debug("Result received from crew kickoff.")
-
-            if use_critic and "no further improvements needed" in result.raw.lower():
-                break  # Если нет замечаний, выходим из цикла
-
-        # Loading bank's logo
-        bank_logo = get_bank_logo(bank_chosen)
-        logo_img = html.Img(src=bank_logo, style={'width': '200px', 'margin': '20px auto'})
-
-        # Editing results
+        # Отображаем исправленный текст
         paragraphs = result.raw.split("\n\n")
         formatted_output = [dcc.Markdown(paragraph) for paragraph in paragraphs if paragraph.strip() != ""]
+
+        bank_logo = get_bank_logo(bank_chosen)
+        logo_img = html.Img(src=bank_logo, style={'width': '200px', 'margin': '20px auto'})
 
         return [logo_img] + formatted_output, ""
 
