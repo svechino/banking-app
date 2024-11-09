@@ -12,9 +12,9 @@ logging.basicConfig(level=logging.DEBUG)
 dotenv_path = find_dotenv()
 load_dotenv(dotenv_path)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
+tavily_api_key = os.getenv('TAVILY_API_KEY')
 
-search_tool = TavilySearchResults()
+search_tool = TavilySearchResults(tavily_api_key=tavily_api_key)
 
 def get_bank_logo(bank_name):
     logos = {
